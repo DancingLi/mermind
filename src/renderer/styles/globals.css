@@ -1,0 +1,104 @@
+@import "tailwindcss";
+@import "@xyflow/react/dist/style.css";
+
+@layer base {
+  :root {
+    --mm-bg: #f8fafc;
+    --mm-surface: #ffffff;
+    --mm-surface-muted: #f1f5f9;
+    --mm-border: #e2e8f0;
+    --mm-text: #0f172a;
+    --mm-text-muted: #64748b;
+    --mm-accent: #2563eb;
+    --mm-accent-soft: #eff6ff;
+  }
+
+  .dark {
+    --mm-bg: #0b1120;
+    --mm-surface: #111827;
+    --mm-surface-muted: #1e293b;
+    --mm-border: #263248;
+    --mm-text: #f1f5f9;
+    --mm-text-muted: #94a3b8;
+    --mm-accent: #38bdf8;
+    --mm-accent-soft: rgba(56, 189, 248, 0.14);
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: var(--mm-bg);
+    color: var(--mm-text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB",
+      "Microsoft YaHei UI", "Segoe UI", Roboto, sans-serif;
+  }
+}
+
+.app-drag {
+  -webkit-app-region: drag;
+}
+.app-no-drag {
+  -webkit-app-region: no-drag;
+}
+
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.6);
+}
+
+.react-flow__attribution {
+  display: none !important;
+}
+
+.react-flow__controls {
+  border-radius: 10px !important;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12) !important;
+  border: 1px solid var(--mm-border) !important;
+}
+
+.react-flow__controls-button {
+  background: var(--mm-surface) !important;
+  color: var(--mm-text) !important;
+  border-bottom: 1px solid var(--mm-border) !important;
+  fill: currentColor !important;
+}
+
+.react-flow__controls-button:hover {
+  background: var(--mm-surface-muted) !important;
+}
+
+.react-flow__minimap {
+  border-radius: 10px !important;
+  overflow: hidden;
+  border: 1px solid var(--mm-border) !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1) !important;
+}
+
+.cm-editor {
+  height: 100% !important;
+  font-size: 13px;
+  font-family: "JetBrains Mono", "SF Mono", "Fira Code", Menlo, Consolas, monospace;
+}
+
+.cm-editor.cm-focused {
+  outline: none !important;
+}
+
+.cm-scroller {
+  overflow: auto !important;
+}

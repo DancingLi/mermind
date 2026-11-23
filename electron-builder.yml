@@ -1,0 +1,60 @@
+appId: io.github.dancingli.mermind
+productName: Mermind
+copyright: Copyright © 2026 DancingLi
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/**/*
+  - package.json
+  - "!node_modules/**/*"
+fileAssociations:
+  - ext: mmd
+    name: Mermaid Diagram
+    description: Mermaid Mindmap & Flowchart Document
+    role: Editor
+  - ext: mermaid
+    name: Mermaid Diagram
+    description: Mermaid Mindmap & Flowchart Document
+    role: Editor
+mac:
+  category: public.app-category.productivity
+  icon: build/icon.icns
+  identity: null
+  hardenedRuntime: false
+  gatekeeperAssess: false
+  artifactName: Mermind-${version}-mac-${arch}.${ext}
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+dmg:
+  title: Mermind ${version}
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+win:
+  icon: build/icon.ico
+  artifactName: Mermind-${version}-win-${arch}-${target}.${ext}
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Mermind
+  artifactName: Mermind-${version}-win-${arch}-Setup.${ext}
+portable:
+  artifactName: Mermind-${version}-win-${arch}-Portable.${ext}
