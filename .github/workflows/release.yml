@@ -63,7 +63,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mermind-win-x64
-          path: release/*.exe
+          path: |
+            release/*.exe
+            release/*.blockmap
+            release/latest.yml
 
   publish-release:
     needs: [build-mac, build-win]
@@ -87,3 +90,5 @@ jobs:
           files: |
             artifacts/*.dmg
             artifacts/*.exe
+            artifacts/*.blockmap
+            artifacts/latest.yml

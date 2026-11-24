@@ -1,21 +1,40 @@
 import React from 'react';
-import { FileCode2, GitFork, Minus, Network, Plus, Square, X } from 'lucide-react';
+import {
+  ArrowDownToLine,
+  FileCode2,
+  GitFork,
+  Loader2,
+  Minus,
+  Network,
+  Plus,
+  RefreshCw,
+  Square,
+  X,
+} from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
-import { getDict } from '../i18n';
+import { fmt, getDict } from '../i18n';
 import { getTemplateById } from '@shared/mermaid/templates';
 
 export const TitleBar: React.FC = () => {
   const tabs = useAppStore((s) => s.tabs);
   const activeTabId = useAppStore((s) => s.activeTabId);
   const lang = useAppStore((s) => s.lang);
+  const updateState = useAppStore((s) => s.updateState);
   const setActiveTab = useAppStore((s) => s.setActiveTab);
   const closeTab = useAppStore((s) => s.closeTab);
   const addNewTab = useAppStore((s) => s.addNewTab);
+  const setUpdateModalOpen = useAppStore((s) => s.setUpdateModalOpen);
 
   const dict = getDict(lang);
   const platform = window.mermindAPI?.platform ?? 'web';
   const isMac = platform === 'darwin';
   const isWinOrLinuxDesktop = Boolean(window.mermindAPI) && !isMac;
+
+  const showUpdatePill =
+    updateState &&
+    (updateState.status === 'available' ||
+      updateState.status === 'downloading' ||
+      updateState.status === 'downloaded');
 
   const handleNewBlankTab = () => {
     const blank = getTemplateById('mindmap-blank');
@@ -95,6 +114,40 @@ export const TitleBar: React.FC = () => {
         {/* Dedicated draggable blank region on the right of the tab bar */}
         <div className="app-drag h-full min-w-[48px] flex-1" />
       </div>
+
+      {/* Subtle in-app update status pill */}
+      {showUpdatePill && updateState && (
+        <button
+          type="button"
+          onClick={() => setUpdateModalOpen(true)}
+          className={[
+            'app-no-drag mr-2 inline-flex h-6 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-[11px] font-semibold transition',
+            updateState.status === 'downloaded'
+              ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+              : 'bg-blue-600/12 text-blue-600 hover:bg-blue-600/20 dark:bg-sky-500/20 dark:text-sky-300',
+          ].join(' ')}
+        >
+          {updateState.status === 'downloading' ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : updateState.status === 'downloaded' ? (
+            <RefreshCw className="h-3 w-3" />
+          ) : (
+            <ArrowDownToLine className="h-3 w-3" />
+          )}
+          <span>
+            {updateState.status === 'downloading'
+              ? fmt(dict.updater.pillDownloading, { percent: updateState.percent ?? 0 })
+              : updateState.status === 'downloaded'
+                ? fmt(
+                    updateState.mode === 'auto-win'
+                      ? dict.updater.pillReadyWin
+                      : dict.updater.pillReadyMac,
+                    { version: updateState.latestVersion ?? '' },
+                  )
+                : fmt(dict.updater.pillAvailable, { version: updateState.latestVersion ?? '' })}
+          </span>
+        </button>
+      )}
 
       {/* Windows / Linux Native Window Controls */}
       {isWinOrLinuxDesktop && (

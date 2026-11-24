@@ -148,8 +148,38 @@ export interface ExportFileRequest {
   contentText?: string;
 }
 
+export type UpdateMode = 'auto-win' | 'download-installer';
+
+export type UpdateStatus =
+  | 'idle'
+  | 'checking'
+  | 'up-to-date'
+  | 'available'
+  | 'downloading'
+  | 'downloaded'
+  | 'error';
+
+export interface UpdateState {
+  mode: UpdateMode;
+  status: UpdateStatus;
+  currentVersion: string;
+  latestVersion?: string;
+  releaseName?: string;
+  releaseNotes?: string;
+  releaseUrl?: string;
+  assetName?: string;
+  assetUrl?: string;
+  downloadedPath?: string;
+  percent?: number;
+  transferredBytes?: number;
+  totalBytes?: number;
+  errorMessage?: string;
+  manual?: boolean;
+}
+
 export interface MermindAPI {
   platform: 'darwin' | 'win32' | 'linux' | string;
+  appVersion: string;
   openFileDialog: () => Promise<FilePayload | null>;
   openMarkdownDialog: () => Promise<FilePayload | null>;
   readFileByPath: (filePath: string) => Promise<FilePayload | null>;
@@ -165,6 +195,14 @@ export interface MermindAPI {
   addRecentFile: (filePath: string) => Promise<string[]>;
   clearRecentFiles: () => Promise<void>;
   onMenuAction: (callback: (action: string, payload?: string) => void) => () => void;
+  updater: {
+    getState: () => Promise<UpdateState>;
+    checkForUpdates: (manual?: boolean) => Promise<UpdateState>;
+    downloadUpdate: () => Promise<void>;
+    installUpdate: () => Promise<void>;
+    openReleasePage: () => Promise<void>;
+    onStatusChange: (callback: (state: UpdateState) => void) => () => void;
+  };
   windowControls: {
     minimize: () => void;
     maximizeToggle: () => void;

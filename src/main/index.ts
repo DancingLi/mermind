@@ -3,9 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { ExportFileRequest, FilePayload, SaveFileResult } from '../shared/types';
 import { extractMermaidBlocksFromMarkdown } from '../shared/mermaid/markdown';
+import { AppUpdateController } from './updater';
 
 let mainWindow: BrowserWindow | null = null;
 let pendingOpenPaths: string[] = [];
+const updateController = new AppUpdateController(() => mainWindow);
 
 const RECENT_FILE_LIMIT = 10;
 
@@ -100,6 +102,10 @@ function buildAppMenu(): void {
             label: app.name,
             submenu: [
               { role: 'about' as const },
+              {
+                label: 'Check for Updates...',
+                click: () => sendMenuAction('check-updates'),
+              },
               { type: 'separator' as const },
               { role: 'services' as const },
               { type: 'separator' as const },
@@ -218,6 +224,10 @@ function buildAppMenu(): void {
           label: 'Keyboard Shortcuts',
           accelerator: 'CmdOrCtrl+/',
           click: () => sendMenuAction('open-shortcuts'),
+        },
+        {
+          label: 'Check for Updates...',
+          click: () => sendMenuAction('check-updates'),
         },
         {
           label: 'Mermind on GitHub',
@@ -425,6 +435,9 @@ function registerIpcHandlers(): void {
     buildAppMenu();
   });
 
+  ipcMain.on('mermind:get-version', (event) => {
+    event.returnValue = app.getVersion();
+  });
   ipcMain.on('mermind:win-minimize', () => mainWindow?.minimize());
   ipcMain.on('mermind:win-maximize', () => {
     if (!mainWindow) return;
@@ -432,6 +445,7 @@ function registerIpcHandlers(): void {
     else mainWindow.maximize();
   });
   ipcMain.on('mermind:win-close', () => mainWindow?.close());
+  updateController.registerIpcHandlers();
 }
 
 // Handle macOS Finder double-click file association
@@ -455,6 +469,7 @@ app.whenReady().then(() => {
   registerIpcHandlers();
   buildAppMenu();
   createWindow();
+  updateController.scheduleStartupCheck();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

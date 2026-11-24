@@ -1,21 +1,28 @@
 import React, { useState } from 'react';
 import type { Node } from '@xyflow/react';
 import {
+  AlertCircle,
+  ArrowDownToLine,
   Check,
+  CheckCircle2,
   Copy,
+  ExternalLink,
   FileCode,
   FileImage,
   FileText,
   GitFork,
   Keyboard,
   ListTree,
+  Loader2,
   Network,
   Printer,
+  RefreshCw,
   X,
 } from 'lucide-react';
 import { DIAGRAM_TEMPLATES } from '@shared/mermaid/templates';
 import { mindmapToMarkdownOutline } from '@shared/mermaid/mindmapOps';
 import { wrapAsMarkdownBlock } from '@shared/mermaid/markdown';
+import { formatBytes } from '@shared/updaterUtils';
 import { getActiveTab, useAppStore } from '../store/useAppStore';
 import { fmt, getDict } from '../i18n';
 import { DIAGRAM_THEMES } from '../themes/themes';
@@ -472,6 +479,208 @@ export const MarkdownPickerModal: React.FC = () => {
           >
             {dict.markdownPicker.openAll}
           </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const UpdateModal: React.FC = () => {
+  const open = useAppStore((s) => s.updateModalOpen);
+  const setOpen = useAppStore((s) => s.setUpdateModalOpen);
+  const updateState = useAppStore((s) => s.updateState);
+  const lang = useAppStore((s) => s.lang);
+  const dict = getDict(lang);
+
+  if (!open) return null;
+
+  const state = updateState ?? {
+    mode: window.mermindAPI?.platform === 'win32' ? 'auto-win' : 'download-installer',
+    status: 'checking' as const,
+    currentVersion: window.mermindAPI?.appVersion ?? '0.1.2',
+  };
+
+  const isWinAuto = state.mode === 'auto-win';
+  const percent = state.percent ?? 0;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-xs"
+      onClick={() => setOpen(false)}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] p-5 shadow-2xl"
+      >
+        <div className="mb-4 flex items-start justify-between">
+          <div className="flex items-center gap-2">
+            {state.status === 'checking' || state.status === 'downloading' ? (
+              <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+            ) : state.status === 'up-to-date' || state.status === 'downloaded' ? (
+              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            ) : state.status === 'error' ? (
+              <AlertCircle className="h-4 w-4 text-rose-500" />
+            ) : (
+              <ArrowDownToLine className="h-4 w-4 text-blue-500" />
+            )}
+            <h2 className="text-base font-semibold text-[var(--mm-text)]">
+              {state.status === 'checking'
+                ? dict.updater.checkTitle
+                : state.status === 'up-to-date'
+                  ? dict.updater.upToDate
+                  : state.status === 'available'
+                    ? fmt(dict.updater.availableTitle, { version: state.latestVersion ?? '' })
+                    : state.status === 'downloading'
+                      ? fmt(dict.updater.downloadingTitle, { version: state.latestVersion ?? '' })
+                      : state.status === 'downloaded'
+                        ? fmt(
+                            isWinAuto
+                              ? dict.updater.downloadedTitleWin
+                              : dict.updater.downloadedTitleMac,
+                            { version: state.latestVersion ?? '' },
+                          )
+                        : state.status === 'error'
+                          ? dict.updater.errorTitle
+                          : dict.updater.checkTitle}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="rounded-lg p-1 text-[var(--mm-text-muted)] hover:bg-[var(--mm-surface-muted)]"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Version comparison pill */}
+        {state.latestVersion && state.status !== 'up-to-date' && state.status !== 'checking' && (
+          <div className="mb-3 inline-flex items-center gap-2 rounded-lg border border-[var(--mm-border)] bg-[var(--mm-bg)] px-2.5 py-1 font-mono text-[11px] text-[var(--mm-text-muted)]">
+            <span>v{state.currentVersion}</span>
+            <span>→</span>
+            <span className="font-semibold text-blue-600 dark:text-sky-400">
+              v{state.latestVersion}
+            </span>
+            {state.assetName && <span className="opacity-70">· {state.assetName}</span>}
+          </div>
+        )}
+
+        {/* Body description */}
+        {state.status === 'checking' && (
+          <p className="py-4 text-xs text-[var(--mm-text-muted)]">{dict.updater.checking}</p>
+        )}
+
+        {state.status === 'up-to-date' && (
+          <p className="py-2 text-xs leading-relaxed text-[var(--mm-text-muted)]">
+            {fmt(dict.updater.upToDateDesc, { version: state.currentVersion })}
+          </p>
+        )}
+
+        {state.status === 'available' && (
+          <p className="text-xs leading-relaxed text-[var(--mm-text-muted)]">
+            {isWinAuto ? dict.updater.availableDescWin : dict.updater.availableDescMac}
+          </p>
+        )}
+
+        {state.status === 'downloading' && (
+          <div className="my-3 space-y-2">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--mm-surface-muted)]">
+              <div
+                style={{ width: `${Math.min(100, Math.max(4, percent))}%` }}
+                className="h-full rounded-full bg-blue-600 transition-all duration-150"
+              />
+            </div>
+            <div className="flex items-center justify-between font-mono text-[11px] text-[var(--mm-text-muted)]">
+              <span>{percent}%</span>
+              {state.transferredBytes !== undefined && (
+                <span>
+                  {formatBytes(state.transferredBytes)}
+                  {state.totalBytes ? ` / ${formatBytes(state.totalBytes)}` : ''}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {state.status === 'downloaded' && (
+          <p className="text-xs leading-relaxed text-[var(--mm-text-muted)]">
+            {isWinAuto ? dict.updater.downloadedDescWin : dict.updater.downloadedDescMac}
+          </p>
+        )}
+
+        {state.status === 'error' && (
+          <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-600 dark:text-rose-300">
+            {state.errorMessage || 'Network error'}
+          </div>
+        )}
+
+        {/* Release Notes */}
+        {(state.status === 'available' ||
+          state.status === 'downloading' ||
+          state.status === 'downloaded') && (
+          <div className="mt-3">
+            <div className="mb-1 text-[11px] font-medium text-[var(--mm-text-muted)]">
+              {dict.updater.releaseNotes}
+            </div>
+            <div className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded-xl border border-[var(--mm-border)] bg-[var(--mm-bg)] p-3 text-xs leading-relaxed text-[var(--mm-text)]">
+              {state.releaseNotes || dict.updater.noReleaseNotes}
+            </div>
+          </div>
+        )}
+
+        {/* Footer Actions */}
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => void window.mermindAPI?.updater.openReleasePage()}
+            className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-[var(--mm-text-muted)] hover:bg-[var(--mm-surface-muted)] hover:text-[var(--mm-text)]"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            {dict.updater.btnOpenGithub}
+          </button>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="rounded-lg border border-[var(--mm-border)] px-3 py-1.5 text-xs font-medium text-[var(--mm-text)] hover:bg-[var(--mm-surface-muted)]"
+            >
+              {dict.updater.btnLater}
+            </button>
+
+            {state.status === 'available' && (
+              <button
+                type="button"
+                onClick={() => void window.mermindAPI?.updater.downloadUpdate()}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+              >
+                <ArrowDownToLine className="h-3.5 w-3.5" />
+                {dict.updater.btnDownload}
+              </button>
+            )}
+
+            {state.status === 'downloaded' && (
+              <button
+                type="button"
+                onClick={() => void window.mermindAPI?.updater.installUpdate()}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                {isWinAuto ? dict.updater.btnInstallWin : dict.updater.btnOpenInstaller}
+              </button>
+            )}
+
+            {(state.status === 'error' || state.status === 'up-to-date') && (
+              <button
+                type="button"
+                onClick={() => void window.mermindAPI?.updater.checkForUpdates(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                {dict.updater.btnRetry}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

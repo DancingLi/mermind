@@ -1,6 +1,11 @@
 appId: io.github.dancingli.mermind
 productName: Mermind
 copyright: Copyright © 2026 DancingLi
+publish:
+  provider: github
+  owner: DancingLi
+  repo: mermind
+  releaseType: release
 directories:
   output: release
   buildResources: build

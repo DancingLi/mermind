@@ -5,6 +5,7 @@ import type {
   MindmapAST,
   MindmapLayoutMode,
   ParseDiagnostic,
+  UpdateState,
 } from '@shared/types';
 import { detectDiagramKind } from '@shared/mermaid/detect';
 import { parseMindmap } from '@shared/mermaid/mindmapParser';
@@ -227,6 +228,8 @@ interface AppState {
   exportModalOpen: boolean;
   templateModalOpen: boolean;
   shortcutsModalOpen: boolean;
+  updateModalOpen: boolean;
+  updateState: UpdateState | null;
   markdownImportCandidate: { filePath: string; name: string; blocks: string[] } | null;
 
   // Actions
@@ -264,6 +267,8 @@ interface AppState {
   setExportModalOpen: (open: boolean) => void;
   setTemplateModalOpen: (open: boolean) => void;
   setShortcutsModalOpen: (open: boolean) => void;
+  setUpdateModalOpen: (open: boolean) => void;
+  setUpdateState: (state: UpdateState | null) => void;
   setMarkdownImportCandidate: (
     candidate: { filePath: string; name: string; blocks: string[] } | null,
   ) => void;
@@ -290,6 +295,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   exportModalOpen: false,
   templateModalOpen: false,
   shortcutsModalOpen: false,
+  updateModalOpen: false,
+  updateState: null,
   markdownImportCandidate: null,
 
   setActiveTab: (tabId) => set({ activeTabId: tabId }),
@@ -581,6 +588,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   setExportModalOpen: (exportModalOpen) => set({ exportModalOpen }),
   setTemplateModalOpen: (templateModalOpen) => set({ templateModalOpen }),
   setShortcutsModalOpen: (shortcutsModalOpen) => set({ shortcutsModalOpen }),
+  setUpdateModalOpen: (updateModalOpen) => set({ updateModalOpen }),
+  setUpdateState: (updateState) => set({ updateState }),
   setMarkdownImportCandidate: (markdownImportCandidate) => set({ markdownImportCandidate }),
 }));
 

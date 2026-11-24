@@ -6,7 +6,9 @@ import { fmt, getDict } from '../i18n';
 export const StatusBar: React.FC = () => {
   const tab = useAppStore(getActiveTab);
   const lang = useAppStore((s) => s.lang);
+  const setUpdateModalOpen = useAppStore((s) => s.setUpdateModalOpen);
   const dict = getDict(lang);
+  const appVersion = window.mermindAPI?.appVersion;
 
   const dirty = tab.code !== tab.savedCode;
   const kind = tab.detection.kind;
@@ -62,6 +64,19 @@ export const StatusBar: React.FC = () => {
         <span className={dirty ? 'font-medium text-amber-600 dark:text-amber-400' : ''}>
           {dirty ? dict.statusBar.unsaved : dict.statusBar.saved}
         </span>
+        {appVersion && window.mermindAPI?.updater && (
+          <button
+            type="button"
+            title={dict.updater.statusCheckTooltip}
+            onClick={() => {
+              setUpdateModalOpen(true);
+              void window.mermindAPI?.updater.checkForUpdates(true);
+            }}
+            className="rounded px-1.5 py-0.5 font-mono text-[10px] text-[var(--mm-text-muted)] transition hover:bg-[var(--mm-surface-muted)] hover:text-[var(--mm-text)]"
+          >
+            v{appVersion}
+          </button>
+        )}
       </div>
     </footer>
   );

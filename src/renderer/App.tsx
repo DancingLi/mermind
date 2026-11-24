@@ -18,6 +18,7 @@ import {
   MarkdownPickerModal,
   ShortcutsModal,
   TemplateModal,
+  UpdateModal,
 } from './components/Modals';
 
 export const App: React.FC = () => {
@@ -46,6 +47,8 @@ export const App: React.FC = () => {
   const setExportModalOpen = useAppStore((s) => s.setExportModalOpen);
   const setTemplateModalOpen = useAppStore((s) => s.setTemplateModalOpen);
   const setShortcutsModalOpen = useAppStore((s) => s.setShortcutsModalOpen);
+  const setUpdateModalOpen = useAppStore((s) => s.setUpdateModalOpen);
+  const setUpdateState = useAppStore((s) => s.setUpdateState);
   const setMarkdownImportCandidate = useAppStore((s) => s.setMarkdownImportCandidate);
 
   const dict = getDict(lang);
@@ -215,6 +218,10 @@ export const App: React.FC = () => {
         case 'open-shortcuts':
           setShortcutsModalOpen(true);
           break;
+        case 'check-updates':
+          setUpdateModalOpen(true);
+          void window.mermindAPI?.updater.checkForUpdates(true);
+          break;
       }
     });
   }, [
@@ -227,11 +234,27 @@ export const App: React.FC = () => {
     setExportModalOpen,
     setShortcutsModalOpen,
     setTemplateModalOpen,
+    setUpdateModalOpen,
     toggleCodePane,
     toggleViewMode,
     triggerFitView,
     undo,
   ]);
+
+  // Subscribe to Electron updater status updates
+  useEffect(() => {
+    const updater = window.mermindAPI?.updater;
+    if (!updater) return;
+    void updater.getState().then((s) => setUpdateState(s));
+    return updater.onStatusChange((nextState) => {
+      setUpdateState(nextState);
+      if (nextState.manual && nextState.status !== 'idle') {
+        setUpdateModalOpen(true);
+      } else if (nextState.status === 'downloaded' && nextState.mode === 'auto-win') {
+        setUpdateModalOpen(true);
+      }
+    });
+  }, [setUpdateState, setUpdateModalOpen]);
 
   // Global keyboard shortcuts (works in both Electron & Web)
   useEffect(() => {
@@ -434,6 +457,7 @@ export const App: React.FC = () => {
       <TemplateModal />
       <ShortcutsModal />
       <MarkdownPickerModal />
+      <UpdateModal />
 
       {/* File Drop Overlay */}
       {isDragOver && (
