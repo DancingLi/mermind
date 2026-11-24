@@ -40,9 +40,13 @@
 
 .app-drag {
   -webkit-app-region: drag;
+  app-region: drag;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .app-no-drag {
   -webkit-app-region: no-drag;
+  app-region: no-drag;
 }
 
 ::-webkit-scrollbar {

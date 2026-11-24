@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { Node } from '@xyflow/react';
-import { DIAGRAM_TEMPLATES } from '@shared/mermaid/templates';
+import { getTemplateById } from '@shared/mermaid/templates';
 import { extractMermaidBlocksFromMarkdown } from '@shared/mermaid/markdown';
 import { getActiveTab, useAppStore } from './store/useAppStore';
 import { DIAGRAM_THEMES } from './themes/themes';
@@ -164,12 +164,12 @@ export const App: React.FC = () => {
       const currentLang = useAppStore.getState().lang;
       switch (action) {
         case 'new-mindmap': {
-          const tpl = DIAGRAM_TEMPLATES[1];
+          const tpl = getTemplateById('mindmap-blank');
           addNewTab({ title: getDict(currentLang).tabs.untitledMindmap, code: tpl.code[currentLang] });
           break;
         }
         case 'new-flowchart': {
-          const tpl = DIAGRAM_TEMPLATES[2];
+          const tpl = getTemplateById('flowchart-blank');
           addNewTab({ title: getDict(currentLang).tabs.untitledFlowchart, code: tpl.code[currentLang] });
           break;
         }

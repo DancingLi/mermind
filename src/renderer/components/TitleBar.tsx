@@ -2,7 +2,7 @@ import React from 'react';
 import { FileCode2, GitFork, Minus, Network, Plus, Square, X } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { getDict } from '../i18n';
-import { DIAGRAM_TEMPLATES } from '@shared/mermaid/templates';
+import { getTemplateById } from '@shared/mermaid/templates';
 
 export const TitleBar: React.FC = () => {
   const tabs = useAppStore((s) => s.tabs);
@@ -18,7 +18,7 @@ export const TitleBar: React.FC = () => {
   const isWinOrLinuxDesktop = Boolean(window.mermindAPI) && !isMac;
 
   const handleNewBlankTab = () => {
-    const blank = DIAGRAM_TEMPLATES[1];
+    const blank = getTemplateById('mindmap-blank');
     addNewTab({ title: dict.tabs.untitledMindmap, code: blank.code[lang] });
   };
 
@@ -29,8 +29,8 @@ export const TitleBar: React.FC = () => {
         isMac ? 'pl-[78px] pr-3' : 'pl-3 pr-0',
       ].join(' ')}
     >
-      {/* Brand + Multi-Tab Strip */}
-      <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+      {/* Brand + Multi-Tab Strip + Draggable Blank Area */}
+      <div className="flex h-full min-w-0 flex-1 items-center gap-2 overflow-hidden">
         <div className="flex shrink-0 items-center gap-1.5 pr-1">
           <div className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-blue-600 to-teal-500 text-[11px] font-bold text-white shadow-sm">
             M
@@ -38,7 +38,7 @@ export const TitleBar: React.FC = () => {
           <span className="text-xs font-bold tracking-tight text-[var(--mm-text)]">Mermind</span>
         </div>
 
-        <div className="app-no-drag flex min-w-0 flex-1 items-center gap-1 overflow-x-auto py-1">
+        <div className="flex min-w-0 items-center gap-1 overflow-x-auto py-1">
           {tabs.map((t) => {
             const active = t.id === activeTabId;
             const dirty = t.code !== t.savedCode;
@@ -53,7 +53,7 @@ export const TitleBar: React.FC = () => {
                 key={t.id}
                 onClick={() => setActiveTab(t.id)}
                 className={[
-                  'group flex h-7 max-w-[200px] shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 text-xs transition',
+                  'app-no-drag group flex h-7 max-w-[200px] shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 text-xs transition',
                   active
                     ? 'border-[var(--mm-border)] bg-[var(--mm-bg)] font-medium text-[var(--mm-text)] shadow-xs'
                     : 'border-transparent text-[var(--mm-text-muted)] hover:bg-[var(--mm-surface-muted)] hover:text-[var(--mm-text)]',
@@ -86,11 +86,14 @@ export const TitleBar: React.FC = () => {
             type="button"
             onClick={handleNewBlankTab}
             title={dict.tabs.newTab}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[var(--mm-text-muted)] transition hover:bg-[var(--mm-surface-muted)] hover:text-[var(--mm-text)]"
+            className="app-no-drag flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[var(--mm-text-muted)] transition hover:bg-[var(--mm-surface-muted)] hover:text-[var(--mm-text)]"
           >
             <Plus className="h-3.5 w-3.5" />
           </button>
         </div>
+
+        {/* Dedicated draggable blank region on the right of the tab bar */}
+        <div className="app-drag h-full min-w-[48px] flex-1" />
       </div>
 
       {/* Windows / Linux Native Window Controls */}

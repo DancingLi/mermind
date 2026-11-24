@@ -10,6 +10,65 @@ export interface DiagramTemplate {
 
 export const DIAGRAM_TEMPLATES: DiagramTemplate[] = [
   {
+    id: 'mindmap-blank',
+    kind: 'mindmap',
+    name: { zh: '空白思维导图', en: 'Blank Mindmap' },
+    description: {
+      zh: '极简起点，选中根节点按 Tab 即可开始发散想法',
+      en: 'Minimal starter — press Tab on the root node to brainstorm',
+    },
+    code: {
+      zh: `mindmap
+  root((中心主题))
+    分支主题 1
+      子主题 1.1
+    分支主题 2
+      子主题 2.1`,
+      en: `mindmap
+  root((Central Topic))
+    Branch 1
+      Subtopic 1.1
+    Branch 2
+      Subtopic 2.1`,
+    },
+  },
+  {
+    id: 'flowchart-blank',
+    kind: 'flowchart',
+    name: { zh: '空白流程图', en: 'Blank Flowchart' },
+    description: {
+      zh: '极简起点，选中节点按 Tab 延伸下游、Enter 新增分支或拖拽连线',
+      en: 'Minimal starter — press Tab for downstream, Enter for branch, or drag handles',
+    },
+    code: {
+      zh: `flowchart TD
+  Start([开始]) --> Step1[步骤 1]`,
+      en: `flowchart TD
+  Start([Start]) --> Step1[Step 1]`,
+    },
+  },
+  {
+    id: 'other-sequence-blank',
+    kind: 'other',
+    name: { zh: '空白时序图', en: 'Blank Sequence Diagram' },
+    description: {
+      zh: '极简时序图起点，直接在左侧编辑参与角色与交互消息并实时预览',
+      en: 'Minimal sequence diagram starter — edit participants and messages with live preview',
+    },
+    code: {
+      zh: `sequenceDiagram
+  participant A as 角色 A
+  participant B as 角色 B
+  A->>B: 发送消息
+  B-->>A: 返回响应`,
+      en: `sequenceDiagram
+  participant A as Actor A
+  participant B as Actor B
+  A->>B: Send message
+  B-->>A: Return response`,
+    },
+  },
+  {
     id: 'mindmap-product',
     kind: 'mindmap',
     name: { zh: '产品规划思维导图', en: 'Product Roadmap Mindmap' },
@@ -56,29 +115,6 @@ export const DIAGRAM_TEMPLATES: DiagramTemplate[] = [
       Crisp SVG & HiDPI PNG
       PDF Document Export
       Markdown Outline Copy`,
-    },
-  },
-  {
-    id: 'mindmap-blank',
-    kind: 'mindmap',
-    name: { zh: '空白思维导图', en: 'Blank Mindmap' },
-    description: {
-      zh: '极简起点，选中根节点按 Tab 即可开始发散想法',
-      en: 'Minimal starter — press Tab on the root node to brainstorm',
-    },
-    code: {
-      zh: `mindmap
-  root((中心主题))
-    分支主题 1
-      子主题 1.1
-    分支主题 2
-      子主题 2.1`,
-      en: `mindmap
-  root((Central Topic))
-    Branch 1
-      Subtopic 1.1
-    Branch 2
-      Subtopic 2.1`,
     },
   },
   {
@@ -185,3 +221,7 @@ export const DIAGRAM_TEMPLATES: DiagramTemplate[] = [
     },
   },
 ];
+
+export function getTemplateById(id: string): DiagramTemplate {
+  return DIAGRAM_TEMPLATES.find((t) => t.id === id) ?? DIAGRAM_TEMPLATES[0];
+}

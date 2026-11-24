@@ -9,7 +9,7 @@ import type {
 import { detectDiagramKind } from '@shared/mermaid/detect';
 import { parseMindmap } from '@shared/mermaid/mindmapParser';
 import { parseFlowchart } from '@shared/mermaid/flowchartParser';
-import { DIAGRAM_TEMPLATES } from '@shared/mermaid/templates';
+import { getTemplateById } from '@shared/mermaid/templates';
 import type { Language } from '../i18n';
 import type { DiagramThemeId } from '../themes/themes';
 
@@ -185,7 +185,7 @@ function loadInitialTabs(lang: Language): TabDoc[] {
   } catch {
     // ignore
   }
-  const starter = DIAGRAM_TEMPLATES[0];
+  const starter = getTemplateById('mindmap-product');
   return [
     createTabDoc({
       title: starter.name[lang],
@@ -319,7 +319,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (idx === -1) return;
     let nextTabs = tabs.filter((t) => t.id !== tabId);
     if (nextTabs.length === 0) {
-      const blank = DIAGRAM_TEMPLATES[1];
+      const blank = getTemplateById('mindmap-blank');
       nextTabs = [createTabDoc({ title: blank.name[lang], code: blank.code[lang] })];
     }
     const nextActive =
