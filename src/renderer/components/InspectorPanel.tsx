@@ -21,8 +21,10 @@ import {
   addMindmapSibling,
   deleteMindmapNode,
   findMindmapNode,
+  getCanonicalMindmapUid,
   moveMindmapNodeOrder,
   promoteMindmapNode,
+  reindexMindmapUids,
   updateMindmapNodeLabel,
   updateMindmapNodeShape,
   updateMindmapNodeStyle,
@@ -228,7 +230,7 @@ export const InspectorPanel: React.FC = () => {
               <button
                 type="button"
                 onClick={() => {
-                  const { ast: next, newNodeUid } = addMindmapChild(
+                  const { ast: next, newNodeUid, uidMap } = addMindmapChild(
                     ast,
                     node.uid,
                     lang === 'zh' ? '子主题' : 'Subtopic',
@@ -236,6 +238,8 @@ export const InspectorPanel: React.FC = () => {
                   updateActiveCode(serializeMindmap(next), {
                     selectNodeId: newNodeUid,
                     editingNodeId: newNodeUid,
+                    mindmapUidMap: uidMap,
+                    expandUid: node.uid,
                   });
                 }}
                 className="flex items-center justify-center gap-1 rounded-lg border border-[var(--mm-border)] px-2 py-1.5 font-medium hover:bg-[var(--mm-surface-muted)]"
@@ -246,7 +250,7 @@ export const InspectorPanel: React.FC = () => {
               <button
                 type="button"
                 onClick={() => {
-                  const { ast: next, newNodeUid } = addMindmapSibling(
+                  const { ast: next, newNodeUid, uidMap } = addMindmapSibling(
                     ast,
                     node.uid,
                     lang === 'zh' ? '同级主题' : 'Topic',
@@ -254,6 +258,7 @@ export const InspectorPanel: React.FC = () => {
                   updateActiveCode(serializeMindmap(next), {
                     selectNodeId: newNodeUid,
                     editingNodeId: newNodeUid,
+                    mindmapUidMap: uidMap,
                   });
                 }}
                 className="flex items-center justify-center gap-1 rounded-lg border border-[var(--mm-border)] px-2 py-1.5 font-medium hover:bg-[var(--mm-surface-muted)]"
@@ -268,7 +273,14 @@ export const InspectorPanel: React.FC = () => {
                     type="button"
                     onClick={() => {
                       const next = moveMindmapNodeOrder(ast, node.uid, 'up');
-                      if (next !== ast) updateActiveCode(serializeMindmap(next), { selectNodeId: node.uid });
+                      if (next !== ast) {
+                        const nextUid = getCanonicalMindmapUid(next.root, node.uid) ?? node.uid;
+                        const uidMap = reindexMindmapUids(next.root);
+                        updateActiveCode(serializeMindmap(next), {
+                          selectNodeId: nextUid,
+                          mindmapUidMap: uidMap,
+                        });
+                      }
                     }}
                     className="flex items-center justify-center gap-1 rounded-lg border border-[var(--mm-border)] px-2 py-1.5 hover:bg-[var(--mm-surface-muted)]"
                   >
@@ -279,7 +291,14 @@ export const InspectorPanel: React.FC = () => {
                     type="button"
                     onClick={() => {
                       const next = moveMindmapNodeOrder(ast, node.uid, 'down');
-                      if (next !== ast) updateActiveCode(serializeMindmap(next), { selectNodeId: node.uid });
+                      if (next !== ast) {
+                        const nextUid = getCanonicalMindmapUid(next.root, node.uid) ?? node.uid;
+                        const uidMap = reindexMindmapUids(next.root);
+                        updateActiveCode(serializeMindmap(next), {
+                          selectNodeId: nextUid,
+                          mindmapUidMap: uidMap,
+                        });
+                      }
                     }}
                     className="flex items-center justify-center gap-1 rounded-lg border border-[var(--mm-border)] px-2 py-1.5 hover:bg-[var(--mm-surface-muted)]"
                   >
@@ -290,7 +309,14 @@ export const InspectorPanel: React.FC = () => {
                     type="button"
                     onClick={() => {
                       const next = promoteMindmapNode(ast, node.uid);
-                      if (next !== ast) updateActiveCode(serializeMindmap(next), { selectNodeId: node.uid });
+                      if (next !== ast) {
+                        const nextUid = getCanonicalMindmapUid(next.root, node.uid) ?? node.uid;
+                        const uidMap = reindexMindmapUids(next.root);
+                        updateActiveCode(serializeMindmap(next), {
+                          selectNodeId: nextUid,
+                          mindmapUidMap: uidMap,
+                        });
+                      }
                     }}
                     className="flex items-center justify-center gap-1 rounded-lg border border-[var(--mm-border)] px-2 py-1.5 hover:bg-[var(--mm-surface-muted)]"
                   >
@@ -300,8 +326,11 @@ export const InspectorPanel: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      const { ast: next, nextSelectUid } = deleteMindmapNode(ast, node.uid);
-                      updateActiveCode(serializeMindmap(next), { selectNodeId: nextSelectUid });
+                      const { ast: next, nextSelectUid, uidMap } = deleteMindmapNode(ast, node.uid);
+                      updateActiveCode(serializeMindmap(next), {
+                        selectNodeId: nextSelectUid,
+                        mindmapUidMap: uidMap,
+                      });
                     }}
                     className="flex items-center justify-center gap-1 rounded-lg border border-rose-500/30 bg-rose-500/10 px-2 py-1.5 font-medium text-rose-600 hover:bg-rose-500/20 dark:text-rose-400"
                   >

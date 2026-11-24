@@ -19,16 +19,44 @@ export function cloneMindmapAST(ast: MindmapAST): MindmapAST {
   };
 }
 
-function generateUid(root: MindmapNode): string {
-  const used = new Set<string>();
-  const walk = (n: MindmapNode) => {
-    used.add(n.uid);
-    n.children.forEach(walk);
+/**
+ * Re-assign pre-order `mm_1..mm_N` UIDs to match `parseMindmap`'s exact traversal order.
+ * Returns a map from each node's previous UID to its canonical post-parse UID.
+ */
+export function reindexMindmapUids(root: MindmapNode): Map<string, string> {
+  const mapping = new Map<string, string>();
+  let seq = 0;
+  const walk = (node: MindmapNode) => {
+    const oldUid = node.uid;
+    const newUid = `mm_${++seq}`;
+    mapping.set(oldUid, newUid);
+    node.uid = newUid;
+    for (const child of node.children) walk(child);
   };
   walk(root);
-  let i = used.size + 1;
-  while (used.has(`mm_${i}`)) i++;
-  return `mm_${i}`;
+  return mapping;
+}
+
+/**
+ * Compute what pre-order `mm_k` UID a node (identified by its current `uid`)
+ * will receive after `serializeMindmap` -> `parseMindmap`.
+ */
+export function getCanonicalMindmapUid(root: MindmapNode, targetUid: string): string | undefined {
+  let seq = 0;
+  let result: string | undefined;
+  const walk = (node: MindmapNode) => {
+    const canonical = `mm_${++seq}`;
+    if (node.uid === targetUid) {
+      result = canonical;
+      return;
+    }
+    for (const child of node.children) {
+      if (result) return;
+      walk(child);
+    }
+  };
+  walk(root);
+  return result;
 }
 
 export function findMindmapNode(
@@ -65,41 +93,45 @@ export function addMindmapChild(
   ast: MindmapAST,
   parentUid: string,
   label = '新主题',
-): { ast: MindmapAST; newNodeUid: string } {
+): { ast: MindmapAST; newNodeUid: string; uidMap: Map<string, string> } {
   const next = cloneMindmapAST(ast);
   const found = findMindmapNode(next.root, parentUid);
   const target = found ? found.node : next.root;
-  const newNodeUid = generateUid(next.root);
+  const sentinelUid = '__mm_new__';
   target.children.push({
-    uid: newNodeUid,
+    uid: sentinelUid,
     label,
     shape: 'default',
     classes: [],
     children: [],
   });
-  return { ast: next, newNodeUid };
+  const uidMap = reindexMindmapUids(next.root);
+  const newNodeUid = uidMap.get(sentinelUid) ?? next.root.uid;
+  return { ast: next, newNodeUid, uidMap };
 }
 
 export function addMindmapSibling(
   ast: MindmapAST,
   siblingUid: string,
   label = '新主题',
-): { ast: MindmapAST; newNodeUid: string } {
+): { ast: MindmapAST; newNodeUid: string; uidMap: Map<string, string> } {
   const next = cloneMindmapAST(ast);
   const found = findMindmapNode(next.root, siblingUid);
   if (!found || !found.parent) {
     // Pressing Enter on root creates a child
     return addMindmapChild(ast, next.root.uid, label);
   }
-  const newNodeUid = generateUid(next.root);
+  const sentinelUid = '__mm_new__';
   found.parent.children.splice(found.index + 1, 0, {
-    uid: newNodeUid,
+    uid: sentinelUid,
     label,
     shape: 'default',
     classes: [],
     children: [],
   });
-  return { ast: next, newNodeUid };
+  const uidMap = reindexMindmapUids(next.root);
+  const newNodeUid = uidMap.get(sentinelUid) ?? next.root.uid;
+  return { ast: next, newNodeUid, uidMap };
 }
 
 export function updateMindmapNodeLabel(ast: MindmapAST, uid: string, label: string): MindmapAST {
@@ -140,20 +172,23 @@ export function updateMindmapNodeStyle(
 export function deleteMindmapNode(
   ast: MindmapAST,
   uid: string,
-): { ast: MindmapAST; nextSelectUid: string } {
+): { ast: MindmapAST; nextSelectUid: string; uidMap: Map<string, string> } {
   if (ast.root.uid === uid) {
-    return { ast, nextSelectUid: ast.root.uid };
+    return { ast, nextSelectUid: ast.root.uid, uidMap: new Map() };
   }
   const next = cloneMindmapAST(ast);
   const found = findMindmapNode(next.root, uid);
   if (!found || !found.parent) {
-    return { ast: next, nextSelectUid: next.root.uid };
+    return { ast: next, nextSelectUid: next.root.uid, uidMap: new Map() };
   }
   found.parent.children.splice(found.index, 1);
   const sibling = found.parent.children[Math.max(0, found.index - 1)];
+  const rawNextUid = sibling ? sibling.uid : found.parent.uid;
+  const uidMap = reindexMindmapUids(next.root);
   return {
     ast: next,
-    nextSelectUid: sibling ? sibling.uid : found.parent.uid,
+    nextSelectUid: uidMap.get(rawNextUid) ?? next.root.uid,
+    uidMap,
   };
 }
 

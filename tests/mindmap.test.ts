@@ -7,6 +7,8 @@ import {
   addMindmapSibling,
   countMindmapNodes,
   deleteMindmapNode,
+  findMindmapNode,
+  getCanonicalMindmapUid,
   mindmapToMarkdownOutline,
   moveMindmapNodeOrder,
   promoteMindmapNode,
@@ -110,16 +112,28 @@ describe('Mindmap parser, serializer & AST ops', () => {
     ]);
 
     // Reparent Child A2 under Branch B
-    const afterReparent = reparentMindmapNode(afterSibling.ast, afterSibling.newNodeUid, branchB.uid);
+    const branchBInSibling = afterSibling.ast.root.children[1];
+    const afterReparent = reparentMindmapNode(
+      afterSibling.ast,
+      afterSibling.newNodeUid,
+      branchBInSibling.uid,
+    );
     expect(afterReparent.root.children[0].children).toHaveLength(1);
     expect(afterReparent.root.children[1].children[0].label).toBe('Child A2');
 
     // Guard against cyclic reparenting (dropping Branch A into its own child Child A1)
-    const cycleAttempt = reparentMindmapNode(afterReparent, branchA.uid, afterChild.newNodeUid);
+    const branchAInReparent = afterReparent.root.children[0];
+    const childA1InReparent = branchAInReparent.children[0];
+    const cycleAttempt = reparentMindmapNode(
+      afterReparent,
+      branchAInReparent.uid,
+      childA1InReparent.uid,
+    );
     expect(cycleAttempt.root.children).toHaveLength(2);
 
     // Promote Child A2 up to root's children
-    const afterPromote = promoteMindmapNode(afterReparent, afterSibling.newNodeUid);
+    const childA2Uid = afterReparent.root.children[1].children[0].uid;
+    const afterPromote = promoteMindmapNode(afterReparent, childA2Uid);
     expect(afterPromote.root.children.map((c) => c.label)).toEqual([
       'Branch A',
       'Branch B',
@@ -127,7 +141,7 @@ describe('Mindmap parser, serializer & AST ops', () => {
     ]);
 
     // Reorder Branch B up
-    const afterReorder = moveMindmapNodeOrder(afterPromote, branchB.uid, 'up');
+    const afterReorder = moveMindmapNodeOrder(afterPromote, afterPromote.root.children[1].uid, 'up');
     expect(afterReorder.root.children.map((c) => c.label)).toEqual([
       'Branch B',
       'Branch A',
@@ -135,8 +149,44 @@ describe('Mindmap parser, serializer & AST ops', () => {
     ]);
 
     // Delete Child A2
-    const afterDelete = deleteMindmapNode(afterReorder, afterSibling.newNodeUid);
+    const afterDelete = deleteMindmapNode(afterReorder, afterReorder.root.children[2].uid);
     expect(afterDelete.ast.root.children).toHaveLength(2);
+  });
+
+  it('returns canonical post-parse UIDs after serialize -> parse round-trip for Tab/Enter/Reorder/Promote/Reparent/Delete', () => {
+    const base = parseMindmap(
+      'mindmap\n  root((Root))\n    Branch A\n      Leaf A1\n    Branch B\n      Leaf B1',
+    ).ast!;
+
+    // Tab on Branch A (not the last branch!) must focus the new child, NOT Leaf B1
+    const afterTab = addMindmapChild(base, base.root.children[0].uid, 'New Child');
+    const reparsedTab = parseMindmap(serializeMindmap(afterTab.ast)).ast!;
+    expect(findMindmapNode(reparsedTab.root, afterTab.newNodeUid)?.node.label).toBe('New Child');
+
+    // Enter on Branch A must focus the new sibling, NOT Leaf B1
+    const afterEnter = addMindmapSibling(reparsedTab, reparsedTab.root.children[0].uid, 'New Sibling');
+    const reparsedEnter = parseMindmap(serializeMindmap(afterEnter.ast)).ast!;
+    expect(findMindmapNode(reparsedEnter.root, afterEnter.newNodeUid)?.node.label).toBe('New Sibling');
+
+    // Promote Leaf A1 and verify canonical UID resolves to Leaf A1 after re-parse
+    const leafA1Uid = reparsedEnter.root.children[0].children[0].uid;
+    const afterPromote = promoteMindmapNode(reparsedEnter, leafA1Uid);
+    const promotedCanonicalUid = getCanonicalMindmapUid(afterPromote.root, leafA1Uid)!;
+    const reparsedPromote = parseMindmap(serializeMindmap(afterPromote)).ast!;
+    expect(findMindmapNode(reparsedPromote.root, promotedCanonicalUid)?.node.label).toBe('Leaf A1');
+
+    // Move Branch B up and verify canonical UID resolves to Branch B after re-parse
+    const branchBUid = reparsedPromote.root.children[3].uid;
+    const afterMoveUp = moveMindmapNodeOrder(reparsedPromote, branchBUid, 'up');
+    const movedCanonicalUid = getCanonicalMindmapUid(afterMoveUp.root, branchBUid)!;
+    const reparsedMoveUp = parseMindmap(serializeMindmap(afterMoveUp)).ast!;
+    expect(findMindmapNode(reparsedMoveUp.root, movedCanonicalUid)?.node.label).toBe('Branch B');
+
+    // Delete New Child and verify nextSelectUid resolves to the expected neighbor after re-parse
+    const newChildUid = reparsedMoveUp.root.children[0].children[0].uid;
+    const afterDel = deleteMindmapNode(reparsedMoveUp, newChildUid);
+    const reparsedDel = parseMindmap(serializeMindmap(afterDel.ast)).ast!;
+    expect(findMindmapNode(reparsedDel.root, afterDel.nextSelectUid)?.node.label).toBe('Branch A');
   });
 
   it('round-trips per-node custom colors via standard Mermaid themeCSS + :::class', () => {

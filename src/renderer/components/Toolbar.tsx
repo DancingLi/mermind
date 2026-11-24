@@ -206,7 +206,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               title={dict.toolbar.addChild}
               onClick={() => {
                 const targetUid = tab.selectedNodeId ?? tab.mindmapAst!.root.uid;
-                const { ast: next, newNodeUid } = addMindmapChild(
+                const { ast: next, newNodeUid, uidMap } = addMindmapChild(
                   tab.mindmapAst!,
                   targetUid,
                   lang === 'zh' ? '子主题' : 'Subtopic',
@@ -214,6 +214,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 updateActiveCode(serializeMindmap(next), {
                   selectNodeId: newNodeUid,
                   editingNodeId: newNodeUid,
+                  mindmapUidMap: uidMap,
+                  expandUid: targetUid,
                 });
               }}
               className={btnCls}
@@ -226,7 +228,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               title={dict.toolbar.addSibling}
               onClick={() => {
                 const targetUid = tab.selectedNodeId ?? tab.mindmapAst!.root.uid;
-                const { ast: next, newNodeUid } = addMindmapSibling(
+                const { ast: next, newNodeUid, uidMap } = addMindmapSibling(
                   tab.mindmapAst!,
                   targetUid,
                   lang === 'zh' ? '同级主题' : 'Topic',
@@ -234,6 +236,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 updateActiveCode(serializeMindmap(next), {
                   selectNodeId: newNodeUid,
                   editingNodeId: newNodeUid,
+                  mindmapUidMap: uidMap,
                 });
               }}
               className={btnCls}

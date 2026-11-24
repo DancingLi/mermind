@@ -179,7 +179,7 @@ const FlowchartNodeCard: React.FC<NodeProps<Node<FlowchartRFNodeData>>> = ({
                 onMouseDown={(e) => e.stopPropagation()}
                 onKeyDown={(e) => {
                   e.stopPropagation();
-                  if (e.key === 'Enter') {
+                  if (e.key === 'Enter' || e.key === 'Tab') {
                     e.preventDefault();
                     commitEdit();
                   } else if (e.key === 'Escape') {
@@ -219,7 +219,7 @@ const FlowchartNodeCard: React.FC<NodeProps<Node<FlowchartRFNodeData>>> = ({
               onMouseDown={(e) => e.stopPropagation()}
               onKeyDown={(e) => {
                 e.stopPropagation();
-                if (e.key === 'Enter') {
+                if (e.key === 'Enter' || e.key === 'Tab') {
                   e.preventDefault();
                   commitEdit();
                 } else if (e.key === 'Escape') {

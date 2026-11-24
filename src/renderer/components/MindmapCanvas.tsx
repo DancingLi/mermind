@@ -18,8 +18,10 @@ import {
   addMindmapSibling,
   deleteMindmapNode,
   findMindmapNode,
+  getCanonicalMindmapUid,
   isDescendant,
   promoteMindmapNode,
+  reindexMindmapUids,
   reparentMindmapNode,
   updateMindmapNodeLabel,
 } from '@shared/mermaid/mindmapOps';
@@ -76,17 +78,26 @@ const MindmapNodeCard: React.FC<NodeProps<Node<MindmapFlowNodeData>>> = ({
   const isEditing = activeTab?.editingNodeId === id;
   const [draft, setDraft] = useState(node.label);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const prevLabelRef = useRef(node.label);
+  const wasEditingRef = useRef(isEditing);
 
-  useEffect(() => {
-    setDraft(node.label);
-  }, [node.label]);
+  // Sync draft immediately when label changes or when this node key enters edit mode
+  // (critical when ReactFlow reuses a node instance key mm_k after a pre-order shift)
+  if (prevLabelRef.current !== node.label || (!wasEditingRef.current && isEditing)) {
+    prevLabelRef.current = node.label;
+    if (draft !== node.label) {
+      setDraft(node.label);
+    }
+  }
+  wasEditingRef.current = isEditing;
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
+      const el = inputRef.current;
+      el.focus();
+      el.select();
     }
-  }, [isEditing]);
+  }, [isEditing, node.label]);
 
   const commitEdit = () => {
     const trimmed = draft.trim();
@@ -152,7 +163,7 @@ const MindmapNodeCard: React.FC<NodeProps<Node<MindmapFlowNodeData>>> = ({
           onMouseDown={(e) => e.stopPropagation()}
           onKeyDown={(e) => {
             e.stopPropagation();
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter' || e.key === 'Tab') {
               e.preventDefault();
               commitEdit();
             } else if (e.key === 'Escape') {
@@ -302,10 +313,12 @@ const MindmapCanvasInner: React.FC<MindmapCanvasProps> = ({
 
       if (e.key === 'Tab' && !e.shiftKey) {
         e.preventDefault();
-        const { ast: nextAst, newNodeUid } = addMindmapChild(ast, activeUid, defaultChildText);
+        const { ast: nextAst, newNodeUid, uidMap } = addMindmapChild(ast, activeUid, defaultChildText);
         updateActiveCode(serializeMindmap(nextAst), {
           selectNodeId: newNodeUid,
           editingNodeId: newNodeUid,
+          mindmapUidMap: uidMap,
+          expandUid: activeUid,
         });
         return;
       }
@@ -314,17 +327,23 @@ const MindmapCanvasInner: React.FC<MindmapCanvasProps> = ({
         e.preventDefault();
         const nextAst = promoteMindmapNode(ast, activeUid);
         if (nextAst !== ast) {
-          updateActiveCode(serializeMindmap(nextAst), { selectNodeId: activeUid });
+          const nextUid = getCanonicalMindmapUid(nextAst.root, activeUid) ?? activeUid;
+          const uidMap = reindexMindmapUids(nextAst.root);
+          updateActiveCode(serializeMindmap(nextAst), {
+            selectNodeId: nextUid,
+            mindmapUidMap: uidMap,
+          });
         }
         return;
       }
 
       if (e.key === 'Enter' && !e.metaKey && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
-        const { ast: nextAst, newNodeUid } = addMindmapSibling(ast, activeUid, defaultSiblingText);
+        const { ast: nextAst, newNodeUid, uidMap } = addMindmapSibling(ast, activeUid, defaultSiblingText);
         updateActiveCode(serializeMindmap(nextAst), {
           selectNodeId: newNodeUid,
           editingNodeId: newNodeUid,
+          mindmapUidMap: uidMap,
         });
         return;
       }
@@ -338,8 +357,11 @@ const MindmapCanvasInner: React.FC<MindmapCanvasProps> = ({
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (activeUid === ast.root.uid) return;
         e.preventDefault();
-        const { ast: nextAst, nextSelectUid } = deleteMindmapNode(ast, activeUid);
-        updateActiveCode(serializeMindmap(nextAst), { selectNodeId: nextSelectUid });
+        const { ast: nextAst, nextSelectUid, uidMap } = deleteMindmapNode(ast, activeUid);
+        updateActiveCode(serializeMindmap(nextAst), {
+          selectNodeId: nextSelectUid,
+          mindmapUidMap: uidMap,
+        });
         return;
       }
 
@@ -446,7 +468,13 @@ const MindmapCanvasInner: React.FC<MindmapCanvasProps> = ({
           if (targetUid && node.id !== ast.root.uid) {
             const nextAst = reparentMindmapNode(ast, node.id, targetUid);
             if (nextAst !== ast) {
-              updateActiveCode(serializeMindmap(nextAst), { selectNodeId: node.id });
+              const nextUid = getCanonicalMindmapUid(nextAst.root, node.id) ?? node.id;
+              const uidMap = reindexMindmapUids(nextAst.root);
+              updateActiveCode(serializeMindmap(nextAst), {
+                selectNodeId: nextUid,
+                mindmapUidMap: uidMap,
+                expandUid: targetUid,
+              });
             }
           }
         }}

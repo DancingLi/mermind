@@ -240,6 +240,8 @@ interface AppState {
       selectNodeId?: string;
       editingNodeId?: string;
       clearSelection?: boolean;
+      mindmapUidMap?: Map<string, string>;
+      expandUid?: string;
     },
   ) => void;
   markTabSaved: (tabId: string, filePath: string, name: string) => void;
@@ -330,7 +332,14 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   updateActiveCode: (nextCode, options = {}) => {
     const { tabs, activeTabId } = get();
-    const { pushHistory = true, selectNodeId, editingNodeId, clearSelection } = options;
+    const {
+      pushHistory = true,
+      selectNodeId,
+      editingNodeId,
+      clearSelection,
+      mindmapUidMap,
+      expandUid,
+    } = options;
 
     const nextTabs = tabs.map((tab) => {
       if (tab.id !== activeTabId) return tab;
@@ -344,6 +353,17 @@ export const useAppStore = create<AppState>((set, get) => ({
           ? [...tab.historyPast.slice(-(MAX_HISTORY - 1)), tab.code]
           : tab.historyPast;
 
+      let nextCollapsed = tab.collapsedUids;
+      if (mindmapUidMap && mindmapUidMap.size > 0 && nextCollapsed.length > 0) {
+        nextCollapsed = nextCollapsed
+          .map((u) => mindmapUidMap.get(u))
+          .filter((u): u is string => Boolean(u));
+      }
+      if (expandUid) {
+        const mappedExpand = mindmapUidMap?.get(expandUid) ?? expandUid;
+        nextCollapsed = nextCollapsed.filter((u) => u !== expandUid && u !== mappedExpand);
+      }
+
       return {
         ...tab,
         code: nextCode,
@@ -351,6 +371,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         mindmapAst: parsed.mindmapAst,
         flowchartAst: parsed.flowchartAst,
         parseError: parsed.parseError,
+        collapsedUids: nextCollapsed,
         historyPast,
         historyFuture: pushHistory && tab.code !== nextCode ? [] : tab.historyFuture,
         selectedNodeId: clearSelection
