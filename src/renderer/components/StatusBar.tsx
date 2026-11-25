@@ -2,6 +2,7 @@ import React from 'react';
 import { countMindmapNodes } from '@shared/mermaid/mindmapOps';
 import { getActiveTab, useAppStore } from '../store/useAppStore';
 import { fmt, getDict } from '../i18n';
+import { DshStatusIndicator } from './DshControls';
 
 export const StatusBar: React.FC = () => {
   const tab = useAppStore(getActiveTab);
@@ -56,6 +57,7 @@ export const StatusBar: React.FC = () => {
       {tipText && <span className="hidden truncate px-4 lg:inline">{tipText}</span>}
 
       <div className="flex items-center gap-3">
+        <DshStatusIndicator />
         {tab.filePath && (
           <span className="hidden max-w-[260px] truncate font-mono text-[10px] md:inline">
             {tab.filePath}

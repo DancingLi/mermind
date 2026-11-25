@@ -41,6 +41,12 @@ const api: MermindAPI = {
       };
     },
   },
+  dsh: {
+    getStatus: () => ipcRenderer.invoke('mermind:dsh-status'),
+    send: (request) => ipcRenderer.invoke('mermind:dsh-send', request),
+    pickImages: () => ipcRenderer.invoke('mermind:dsh-pick-images'),
+    openOutput: (args) => ipcRenderer.invoke('mermind:dsh-open-output', args),
+  },
   windowControls: {
     minimize: () => ipcRenderer.send('mermind:win-minimize'),
     maximizeToggle: () => ipcRenderer.send('mermind:win-maximize'),
