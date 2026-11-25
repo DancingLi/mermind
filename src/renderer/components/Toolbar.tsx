@@ -35,6 +35,7 @@ import { serializeFlowchart } from '@shared/mermaid/flowchartSerializer';
 import { getActiveTab, useAppStore } from '../store/useAppStore';
 import { getDict } from '../i18n';
 import type { DiagramThemeId } from '../themes/themes';
+import { DshToolbarControls } from './DshControls';
 
 interface ToolbarProps {
   onOpenFile: () => void;
@@ -382,6 +383,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <Download className="h-3.5 w-3.5" />
           <span>{dict.toolbar.export}</span>
         </button>
+
+        <DshToolbarControls />
 
         <div className="mx-0.5 h-4 w-px bg-[var(--mm-border)]" />
 

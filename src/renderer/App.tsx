@@ -13,6 +13,16 @@ import { FlowchartCanvas } from './components/FlowchartCanvas';
 import { MermaidPreview } from './components/MermaidPreview';
 import { InspectorPanel } from './components/InspectorPanel';
 import { StatusBar } from './components/StatusBar';
+import { AttachmentTray } from './components/DshControls';
+import {
+  attachFromPicker,
+  attachToActiveTab,
+  handleImagePaste,
+  isAttachableImage,
+  readImageFiles,
+  sendActiveTabToDsh,
+  useDshStatusPoller,
+} from './dsh/dshActions';
 import {
   ExportModal,
   MarkdownPickerModal,
@@ -61,6 +71,18 @@ export const App: React.FC = () => {
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode);
   }, [darkMode]);
+
+  useDshStatusPoller();
+
+  // Pasted images become attachments for the next "Send to DSH"; text pastes are untouched.
+  useEffect(() => {
+    if (!window.mermindAPI?.dsh) return;
+    const onPaste = (e: ClipboardEvent) => {
+      handleImagePaste(e);
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, []);
 
   const handleOpenPayload = useCallback(
     (payload: {
@@ -222,6 +244,12 @@ export const App: React.FC = () => {
           setUpdateModalOpen(true);
           void window.mermindAPI?.updater.checkForUpdates(true);
           break;
+        case 'send-to-dsh':
+          await sendActiveTabToDsh();
+          break;
+        case 'attach-images':
+          await attachFromPicker();
+          break;
       }
     });
   }, [
@@ -332,7 +360,13 @@ export const App: React.FC = () => {
   const handleDropFile = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-    const file = e.dataTransfer.files?.[0];
+    const dropped = Array.from(e.dataTransfer.files ?? []);
+    const images = window.mermindAPI?.dsh ? dropped.filter(isAttachableImage) : [];
+    if (images.length > 0) {
+      const { images: read, rejected } = await readImageFiles(images);
+      attachToActiveTab(read, rejected);
+    }
+    const file = dropped.find((f) => !images.includes(f));
     if (!file) return;
     const content = await file.text();
     const isMd = file.name.toLowerCase().endsWith('.md') || file.name.toLowerCase().endsWith('.markdown');
@@ -450,6 +484,7 @@ export const App: React.FC = () => {
         </section>
       </main>
 
+      <AttachmentTray />
       <StatusBar />
 
       {/* Modals */}
@@ -464,8 +499,8 @@ export const App: React.FC = () => {
         <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-blue-600/15 backdrop-blur-xs">
           <div className="rounded-2xl border-2 border-dashed border-blue-500 bg-[var(--mm-surface)] px-8 py-5 text-sm font-semibold text-blue-600 shadow-xl dark:text-blue-300">
             {lang === 'zh'
-              ? '松开鼠标即可打开 .mmd / .mermaid / .md 文件'
-              : 'Drop .mmd / .mermaid / .md file to open'}
+              ? '松开鼠标即可打开 .mmd / .mermaid / .md 文件，或把图片添加为发送附件'
+              : 'Drop .mmd / .mermaid / .md file to open, or images to attach'}
           </div>
         </div>
       )}

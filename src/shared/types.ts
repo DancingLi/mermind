@@ -1,3 +1,5 @@
+import type { DshImage, DshSendRequest, DshSendResult, DshStatus } from './dshBridge';
+
 export type DiagramKind = 'mindmap' | 'flowchart' | 'other';
 
 export interface DiagramDetection {
@@ -202,6 +204,12 @@ export interface MermindAPI {
     installUpdate: () => Promise<void>;
     openReleasePage: () => Promise<void>;
     onStatusChange: (callback: (state: UpdateState) => void) => () => void;
+  };
+  dsh: {
+    getStatus: () => Promise<DshStatus>;
+    send: (request: DshSendRequest) => Promise<DshSendResult>;
+    pickImages: () => Promise<{ images: DshImage[]; rejected: string[] }>;
+    openOutput: (args: { outputFile: string | null; outputDir: string | null }) => Promise<boolean>;
   };
   windowControls: {
     minimize: () => void;

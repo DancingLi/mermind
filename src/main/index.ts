@@ -2,8 +2,10 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { ExportFileRequest, FilePayload, SaveFileResult } from '../shared/types';
+import type { DshSendRequest } from '../shared/dshBridge';
 import { extractMermaidBlocksFromMarkdown } from '../shared/mermaid/markdown';
 import { AppUpdateController } from './updater';
+import { getDshStatus, readImageFiles, resolveOutputPath, sendToDsh } from './dshBridge';
 
 let mainWindow: BrowserWindow | null = null;
 let pendingOpenPaths: string[] = [];
@@ -166,6 +168,16 @@ function buildAppMenu(): void {
           label: 'Export...',
           accelerator: 'CmdOrCtrl+E',
           click: () => sendMenuAction('open-export'),
+        },
+        { type: 'separator' },
+        {
+          label: 'Send to DSH',
+          accelerator: 'CmdOrCtrl+Shift+Enter',
+          click: () => sendMenuAction('send-to-dsh'),
+        },
+        {
+          label: 'Attach Images...',
+          click: () => sendMenuAction('attach-images'),
         },
         { type: 'separator' },
         isMac ? { role: 'close' } : { role: 'quit' },
@@ -425,6 +437,27 @@ function registerIpcHandlers(): void {
       } finally {
         printWin.destroy();
       }
+    },
+  );
+
+  ipcMain.handle('mermind:dsh-status', () => getDshStatus());
+  ipcMain.handle('mermind:dsh-send', (_e, request: DshSendRequest) => sendToDsh(request));
+  ipcMain.handle('mermind:dsh-pick-images', async () => {
+    if (!mainWindow) return { images: [], rejected: [] };
+    const res = await dialog.showOpenDialog(mainWindow, {
+      title: 'Attach Images',
+      properties: ['openFile', 'multiSelections'],
+      filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }],
+    });
+    if (res.canceled) return { images: [], rejected: [] };
+    return readImageFiles(res.filePaths);
+  });
+  ipcMain.handle(
+    'mermind:dsh-open-output',
+    async (_e, args: { outputFile: string | null; outputDir: string | null }): Promise<boolean> => {
+      const target = resolveOutputPath(args.outputFile, args.outputDir);
+      if (!target) return false;
+      return (await shell.openPath(target)) === '';
     },
   );
 

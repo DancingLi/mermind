@@ -7,6 +7,8 @@ import type {
   ParseDiagnostic,
   UpdateState,
 } from '@shared/types';
+import type { DshAttachment, DshImage, DshStatus } from '@shared/dshBridge';
+import { base64Size, MAX_DSH_IMAGES } from '@shared/dshBridge';
 import { detectDiagramKind } from '@shared/mermaid/detect';
 import { parseMindmap } from '@shared/mermaid/mindmapParser';
 import { parseFlowchart } from '@shared/mermaid/flowchartParser';
@@ -33,6 +35,8 @@ export interface TabDoc {
   editingNodeId?: string;
   historyPast: string[];
   historyFuture: string[];
+  /** Images sent along with this tab's code to DSH; kept in memory only, too large for drafts. */
+  attachments: DshAttachment[];
 }
 
 interface PersistedPrefs {
@@ -163,8 +167,11 @@ function createTabDoc(args: {
     selectedNodeId: undefined,
     historyPast: [],
     historyFuture: [],
+    attachments: [],
   };
 }
+
+let attachmentCounter = 1;
 
 function loadInitialTabs(lang: Language): TabDoc[] {
   try {
@@ -223,6 +230,8 @@ interface AppState {
   fitViewTrigger: number;
   searchQuery: string;
   toastMessage: string | null;
+  dshStatus: DshStatus | null;
+  dshSending: boolean;
 
   // Modals
   exportModalOpen: boolean;
@@ -263,7 +272,13 @@ interface AppState {
   toggleViewMode: () => void;
   triggerFitView: () => void;
   setSearchQuery: (q: string) => void;
-  showToast: (msg: string) => void;
+  showToast: (msg: string, durationMs?: number) => void;
+  /** Append images to a tab; returns how many fit under the per-message limit. */
+  addAttachments: (tabId: string, images: DshImage[]) => number;
+  removeAttachment: (tabId: string, attachmentId: string) => void;
+  clearAttachments: (tabId: string) => void;
+  setDshStatus: (status: DshStatus | null) => void;
+  setDshSending: (sending: boolean) => void;
   setExportModalOpen: (open: boolean) => void;
   setTemplateModalOpen: (open: boolean) => void;
   setShortcutsModalOpen: (open: boolean) => void;
@@ -292,6 +307,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   fitViewTrigger: 0,
   searchQuery: '',
   toastMessage: null,
+  dshStatus: null,
+  dshSending: false,
   exportModalOpen: false,
   templateModalOpen: false,
   shortcutsModalOpen: false,
@@ -579,11 +596,45 @@ export const useAppStore = create<AppState>((set, get) => ({
   triggerFitView: () => set((s) => ({ fitViewTrigger: s.fitViewTrigger + 1 })),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
 
-  showToast: (msg) => {
+  showToast: (msg, durationMs = 2200) => {
     if (toastTimer) clearTimeout(toastTimer);
     set({ toastMessage: msg });
-    toastTimer = setTimeout(() => set({ toastMessage: null }), 2200);
+    toastTimer = setTimeout(() => set({ toastMessage: null }), durationMs);
   },
+
+  addAttachments: (tabId, images) => {
+    const tab = get().tabs.find((t) => t.id === tabId);
+    if (!tab) return 0;
+    const room = Math.max(0, MAX_DSH_IMAGES - tab.attachments.length);
+    const added: DshAttachment[] = images.slice(0, room).map((image) => ({
+      ...image,
+      id: `att_${Date.now().toString(36)}_${attachmentCounter++}`,
+      size: base64Size(image.data),
+    }));
+    if (added.length > 0) {
+      set({
+        tabs: get().tabs.map((t) =>
+          t.id === tabId ? { ...t, attachments: [...t.attachments, ...added] } : t,
+        ),
+      });
+    }
+    return added.length;
+  },
+
+  removeAttachment: (tabId, attachmentId) =>
+    set({
+      tabs: get().tabs.map((t) =>
+        t.id === tabId ? { ...t, attachments: t.attachments.filter((a) => a.id !== attachmentId) } : t,
+      ),
+    }),
+
+  clearAttachments: (tabId) =>
+    set({
+      tabs: get().tabs.map((t) => (t.id === tabId && t.attachments.length > 0 ? { ...t, attachments: [] } : t)),
+    }),
+
+  setDshStatus: (dshStatus) => set({ dshStatus }),
+  setDshSending: (dshSending) => set({ dshSending }),
 
   setExportModalOpen: (exportModalOpen) => set({ exportModalOpen }),
   setTemplateModalOpen: (templateModalOpen) => set({ templateModalOpen }),

@@ -47,6 +47,7 @@
   - 原生读写 `.mmd` / `.mermaid` 文件（支持拖放打开、最近文件、多标签与本地草稿自动恢复），支持从 `.md` 文档提取 Mermaid 代码块导入。
   - 导出 **SVG 矢量图、高分 PNG（1x/2x/3x）、横版 A4 PDF、Markdown 大纲**，以及一键复制纯 Mermaid 或 Markdown 代码块。
 - **中英双语 & 双平台桌面端**：默认简体中文，一键切换 English；提供 macOS（Apple Silicon & Intel）与 Windows 原生安装包。
+- **一键发送到 DSH（DeepSeek Harness）**：工具栏「发送到 DSH」把当前导图的 Mermaid 源码连同附加的图片，直接发送到 DSH 当前显示的会话；图片可通过「图片」按钮选择，也可直接粘贴或拖入窗口。DSH 的回复写入与会话标题同名的 Markdown 文件，点击状态栏的「DSH · 会话名」即可打开。需要在 DSH 中安装 `dsh-mermind-bridge` 插件。
 
 ---
 
@@ -67,6 +68,8 @@
 | `Cmd/Ctrl + O` / `Shift + O` | 打开 `.mmd` 文件 / 从 Markdown 导入 |
 | `Cmd/Ctrl + E` | 打开导出弹窗（SVG / PNG / PDF / Markdown） |
 | `Cmd/Ctrl + 0` | 画布居中自适应缩放 |
+| `Cmd/Ctrl + Shift + Enter` | 把当前导图（含图片）发送到 DSH 当前显示的会话 |
+| `Cmd/Ctrl + V`（剪贴板为图片时） | 添加为发送附件 |
 | `Cmd/Ctrl + /` | 查看快捷键指南 |
 
 ---
