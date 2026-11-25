@@ -39,15 +39,17 @@ export const DshToolbarControls: React.FC = () => {
           </span>
         )}
       </button>
+      {/* Icon only; the tooltip names the target session and screen readers get the label. */}
       <button
         type="button"
         onClick={() => void sendActiveTabToDsh()}
         disabled={sending}
         title={tooltip}
-        className="inline-flex h-7 items-center gap-1.5 rounded-lg bg-emerald-600 px-2.5 text-xs font-medium text-white shadow-xs transition hover:bg-emerald-700 disabled:opacity-60"
+        aria-label={sending ? dict.dsh.sending : dict.dsh.send}
+        aria-busy={sending}
+        className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-xs transition hover:bg-emerald-700 disabled:opacity-60"
       >
         {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-        <span>{sending ? dict.dsh.sending : dict.dsh.send}</span>
       </button>
     </>
   );
